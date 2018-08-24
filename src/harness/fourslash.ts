@@ -868,8 +868,10 @@ namespace FourSlash {
             const actualByName = ts.createMap<ts.CompletionEntry>();
             for (const entry of actualCompletions.entries) {
                 if (actualByName.has(entry.name)) {
-                    // TODO: GH#23587
-                    if (entry.name !== "undefined" && entry.name !== "require") this.raiseError(`Duplicate (${actualCompletions.entries.filter(a => a.name === entry.name).length}) completions for ${entry.name}`);
+                    //TODO: GH#23587
+                    if (entry.name !== "undefined" && entry.name !== "require" && !entry.source) {
+                        this.raiseError(`Duplicate (${actualCompletions.entries.filter(a => a.name === entry.name).length}) completions for ${entry.name}`);
+                    }
                 }
                 else {
                     actualByName.set(entry.name, entry);
@@ -4746,11 +4748,10 @@ namespace FourSlashInterface {
     export namespace Completion {
         const res: string[] = [];
         for (let i = ts.SyntaxKind.FirstKeyword; i <= ts.SyntaxKind.LastKeyword; i++) {
-            if (i !== ts.SyntaxKind.UndefinedKeyword) {
-                res.push(ts.Debug.assertDefined(ts.tokenToString(i)));
-            }
+            res.push(ts.Debug.assertDefined(ts.tokenToString(i)));
         }
-        export const keywords: ReadonlyArray<string> = res;
+        export const keywordsWithUndefined: ReadonlyArray<string> = res;
+        export const keywords: ReadonlyArray<string> = keywordsWithUndefined.filter(k => k !== "undefined");
 
         export const typeKeywords: ReadonlyArray<string> = //keywords like below
             ["null", "void", "any", "boolean", "keyof", "never", "number", "object", "string", "symbol", "undefined", "unique", "unknown"];
@@ -4760,6 +4761,22 @@ namespace FourSlashInterface {
 
         export const constructorParameterKeywords: ReadonlyArray<ExpectedCompletionEntry> =
             ["private", "protected", "public", "readonly"].map((name): ExpectedCompletionEntry => ({ name, kind: "keyword" }));
+
+        export const functionMembers: ReadonlyArray<ExpectedCompletionEntry> = [
+            "apply",
+            "call",
+            "bind",
+            "toString",
+            "length",
+            { name: "arguments", text: "(property) Function.arguments: any" }, //same for others
+            "caller"
+        ];
+
+        export const functionMembersWithPrototype: ReadonlyArray<ExpectedCompletionEntry> = [
+            ...functionMembers.slice(0, 4),
+            "prototype",
+            ...functionMembers.slice(4),
+        ];
     }
 
     export interface ReferenceGroup {
